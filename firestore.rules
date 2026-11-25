@@ -1,0 +1,189 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global safety net: deny all reads/writes by default
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidDateKey(val) {
+      return val is string && val.size() == 10 && val.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$');
+    }
+
+    function isValidUserSettings(data, userId) {
+      return data.userId is string && data.userId == userId &&
+             data.targetSleepMinutes is int && data.targetSleepMinutes >= 180 && data.targetSleepMinutes <= 720 &&
+             data.defaultSnoozeMinutes is int && data.defaultSnoozeMinutes >= 1 && data.defaultSnoozeMinutes <= 30 &&
+             data.defaultSnoozeMaxCount is int && data.defaultSnoozeMaxCount >= 0 && data.defaultSnoozeMaxCount <= 10 &&
+             data.defaultRampSeconds is int && data.defaultRampSeconds >= 0 && data.defaultRampSeconds <= 300 &&
+             data.sunriseGlowEnabled is bool &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidAlarmProfile(data, userId) {
+      return data.userId is string && data.userId == userId &&
+             data.label is string && data.label.size() <= 60 &&
+             data.hour is int && data.hour >= 0 && data.hour <= 23 &&
+             data.minute is int && data.minute >= 0 && data.minute <= 59 &&
+             data.repeatDays is list && data.repeatDays.size() <= 7 &&
+             (data.repeatDays.size() == 0 || data.repeatDays[0] is int) &&
+             data.enabled is bool &&
+             data.vibrate is bool &&
+             data.soundId is string && data.soundId.size() >= 1 && data.soundId.size() <= 64 &&
+             data.soundTitle is string && data.soundTitle.size() >= 1 && data.soundTitle.size() <= 80 &&
+             (!('soundUri' in data) || (data.soundUri is string && data.soundUri.size() <= 512)) &&
+             data.rampSeconds is int && data.rampSeconds >= 0 && data.rampSeconds <= 300 &&
+             data.maxVolumePercent is int && data.maxVolumePercent >= 10 && data.maxVolumePercent <= 100 &&
+             data.sunriseEnabled is bool &&
+             data.snoozeMode in ['FIXED', 'DIMINISHING', 'CUSTOM'] &&
+             data.snoozeIntervalMinutes is int && data.snoozeIntervalMinutes >= 1 && data.snoozeIntervalMinutes <= 30 &&
+             data.snoozeMaxCount is int && data.snoozeMaxCount >= 0 && data.snoozeMaxCount <= 10 &&
+             data.snoozeSequenceMinutes is list && data.snoozeSequenceMinutes.size() <= 10 &&
+             (data.snoozeSequenceMinutes.size() == 0 || data.snoozeSequenceMinutes[0] is int) &&
+             (!('linkedRoutineId' in data) || (data.linkedRoutineId is string && data.linkedRoutineId.size() <= 128)) &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidMorningRoutine(data, userId) {
+      return data.userId is string && data.userId == userId &&
+             data.title is string && data.title.size() >= 1 && data.title.size() <= 60 &&
+             data.defaultRoutine is bool &&
+             data.steps is list && data.steps.size() <= 20 &&
+             (data.steps.size() == 0 || data.steps[0] is map) &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidRoutineRun(data, userId) {
+      return data.userId is string && data.userId == userId &&
+             data.routineId is string && data.routineId.size() >= 1 && data.routineId.size() <= 128 &&
+             data.routineTitle is string && data.routineTitle.size() >= 1 && data.routineTitle.size() <= 60 &&
+             isValidDateKey(data.dateKey) &&
+             data.completedStepCount is int && data.completedStepCount >= 0 && data.completedStepCount <= 20 &&
+             data.totalStepCount is int && data.totalStepCount >= 1 && data.totalStepCount <= 20 &&
+             data.elapsedSeconds is int && data.elapsedSeconds >= 0 && data.elapsedSeconds <= 86400 &&
+             data.completed is bool &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidSleepLog(data, userId) {
+      return data.userId is string && data.userId == userId &&
+             isValidDateKey(data.dateKey) &&
+             data.bedtimeEpochMs is int && data.bedtimeEpochMs >= 0 &&
+             data.wakeEpochMs is int && data.wakeEpochMs >= 0 &&
+             data.durationMinutes is int && data.durationMinutes >= 15 && data.durationMinutes <= 1440 &&
+             data.qualityRating is int && data.qualityRating >= 1 && data.qualityRating <= 5 &&
+             data.snoozeCountUsed is int && data.snoozeCountUsed >= 0 && data.snoozeCountUsed <= 20 &&
+             data.energyScore is int && data.energyScore >= 1 && data.energyScore <= 10 &&
+             data.mood in ['REFRESHED', 'STEADY', 'GROGGY', 'TIRED'] &&
+             data.readinessScore is int && data.readinessScore >= 0 && data.readinessScore <= 100 &&
+             data.tags is list && data.tags.size() <= 10 &&
+             (data.tags.size() == 0 || data.tags[0] is string) &&
+             data.notes is string && data.notes.size() <= 300 &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    match /users/{userId}/preferences/{prefId} {
+      allow get: if isOwner(userId) && isValidId(userId) && isValidId(prefId);
+      allow list: if isOwner(userId) && isValidId(userId);
+      allow create: if isOwner(userId) && isValidId(userId) && prefId == 'settings' &&
+                       incoming().keys().hasAll(['userId', 'targetSleepMinutes', 'defaultSnoozeMinutes', 'defaultSnoozeMaxCount', 'defaultRampSeconds', 'sunriseGlowEnabled', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['userId', 'targetSleepMinutes', 'defaultSnoozeMinutes', 'defaultSnoozeMaxCount', 'defaultRampSeconds', 'sunriseGlowEnabled', 'createdAt', 'updatedAt']) &&
+                       isValidUserSettings(incoming(), userId);
+      allow update: if isOwner(userId) && isValidId(userId) && prefId == 'settings' &&
+                       isValidUserSettings(incoming(), userId) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['targetSleepMinutes', 'defaultSnoozeMinutes', 'defaultSnoozeMaxCount', 'defaultRampSeconds', 'sunriseGlowEnabled', 'updatedAt']);
+      allow delete: if isOwner(userId) && isValidId(userId) && prefId == 'settings';
+    }
+
+    match /users/{userId}/alarms/{alarmId} {
+      allow get: if isOwner(userId) && isValidId(userId) && isValidId(alarmId);
+      allow list: if isOwner(userId) && isValidId(userId);
+      allow create: if isOwner(userId) && isValidId(userId) && isValidId(alarmId) &&
+                       incoming().keys().hasAll(['userId', 'label', 'hour', 'minute', 'repeatDays', 'enabled', 'vibrate', 'soundId', 'soundTitle', 'rampSeconds', 'maxVolumePercent', 'sunriseEnabled', 'snoozeMode', 'snoozeIntervalMinutes', 'snoozeMaxCount', 'snoozeSequenceMinutes', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['userId', 'label', 'hour', 'minute', 'repeatDays', 'enabled', 'vibrate', 'soundId', 'soundTitle', 'soundUri', 'rampSeconds', 'maxVolumePercent', 'sunriseEnabled', 'snoozeMode', 'snoozeIntervalMinutes', 'snoozeMaxCount', 'snoozeSequenceMinutes', 'linkedRoutineId', 'createdAt', 'updatedAt']) &&
+                       isValidAlarmProfile(incoming(), userId);
+      allow update: if isOwner(userId) && isValidId(userId) && isValidId(alarmId) &&
+                       isValidAlarmProfile(incoming(), userId) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       (
+                         incoming().diff(existing()).affectedKeys().hasOnly(['enabled', 'updatedAt']) ||
+                         incoming().diff(existing()).affectedKeys().hasOnly(['label', 'hour', 'minute', 'repeatDays', 'enabled', 'vibrate', 'soundId', 'soundTitle', 'soundUri', 'rampSeconds', 'maxVolumePercent', 'sunriseEnabled', 'snoozeMode', 'snoozeIntervalMinutes', 'snoozeMaxCount', 'snoozeSequenceMinutes', 'linkedRoutineId', 'updatedAt'])
+                       );
+      allow delete: if isOwner(userId) && isValidId(userId) && isValidId(alarmId);
+    }
+
+    match /users/{userId}/routines/{routineId} {
+      allow get: if isOwner(userId) && isValidId(userId) && isValidId(routineId);
+      allow list: if isOwner(userId) && isValidId(userId);
+      allow create: if isOwner(userId) && isValidId(userId) && isValidId(routineId) &&
+                       incoming().keys().hasAll(['userId', 'title', 'defaultRoutine', 'steps', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['userId', 'title', 'defaultRoutine', 'steps', 'createdAt', 'updatedAt']) &&
+                       isValidMorningRoutine(incoming(), userId);
+      allow update: if isOwner(userId) && isValidId(userId) && isValidId(routineId) &&
+                       isValidMorningRoutine(incoming(), userId) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['title', 'defaultRoutine', 'steps', 'updatedAt']);
+      allow delete: if isOwner(userId) && isValidId(userId) && isValidId(routineId);
+    }
+
+    match /users/{userId}/routineRuns/{runId} {
+      allow get: if isOwner(userId) && isValidId(userId) && isValidId(runId);
+      allow list: if isOwner(userId) && isValidId(userId);
+      allow create: if isOwner(userId) && isValidId(userId) && isValidId(runId) &&
+                       incoming().keys().hasAll(['userId', 'routineId', 'routineTitle', 'dateKey', 'completedStepCount', 'totalStepCount', 'elapsedSeconds', 'completed', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['userId', 'routineId', 'routineTitle', 'dateKey', 'completedStepCount', 'totalStepCount', 'elapsedSeconds', 'completed', 'createdAt', 'updatedAt']) &&
+                       isValidRoutineRun(incoming(), userId);
+      allow update: if isOwner(userId) && isValidId(userId) && isValidId(runId) &&
+                       isValidRoutineRun(incoming(), userId) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['completedStepCount', 'elapsedSeconds', 'completed', 'updatedAt']);
+      allow delete: if isOwner(userId) && isValidId(userId) && isValidId(runId);
+    }
+
+    match /users/{userId}/sleepLogs/{logId} {
+      allow get: if isOwner(userId) && isValidId(userId) && isValidId(logId);
+      allow list: if isOwner(userId) && isValidId(userId);
+      allow create: if isOwner(userId) && isValidId(userId) && isValidId(logId) &&
+                       incoming().keys().hasAll(['userId', 'dateKey', 'bedtimeEpochMs', 'wakeEpochMs', 'durationMinutes', 'qualityRating', 'snoozeCountUsed', 'energyScore', 'mood', 'readinessScore', 'tags', 'notes', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['userId', 'dateKey', 'bedtimeEpochMs', 'wakeEpochMs', 'durationMinutes', 'qualityRating', 'snoozeCountUsed', 'energyScore', 'mood', 'readinessScore', 'tags', 'notes', 'createdAt', 'updatedAt']) &&
+                       isValidSleepLog(incoming(), userId);
+      allow update: if isOwner(userId) && isValidId(userId) && isValidId(logId) &&
+                       isValidSleepLog(incoming(), userId) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['dateKey', 'bedtimeEpochMs', 'wakeEpochMs', 'durationMinutes', 'qualityRating', 'snoozeCountUsed', 'energyScore', 'mood', 'readinessScore', 'tags', 'notes', 'updatedAt']);
+      allow delete: if isOwner(userId) && isValidId(userId) && isValidId(logId);
+    }
+  }
+}

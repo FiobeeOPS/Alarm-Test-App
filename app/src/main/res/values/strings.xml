@@ -1,0 +1,25 @@
+<resources>
+    <string name="app_name">Rust Alarm</string>
+    <string name="tagline">Precision wake-ups, deliberate mornings, and honest sleep telemetry.</string>
+    <string name="sign_in_with_google">Sign in with Google</string>
+    <string name="sign_out">Sign Out</string>
+    <string name="tab_alarms">Alarms</string>
+    <string name="tab_routines">Routines</string>
+    <string name="tab_metrics">Metrics</string>
+    <string name="tab_settings">Settings</string>
+    <string name="alarm_channel_name">Wake Alarms</string>
+    <string name="alarm_channel_desc">Active alarm playback and recurring snooze alerts</string>
+    <string name="cd_alarm_icon">Alarm clock icon</string>
+    <string name="cd_add_alarm">Create new alarm</string>
+    <string name="cd_add_routine">Create new routine</string>
+    <string name="cd_log_sleep">Log sleep and readiness</string>
+    <string name="cd_preview_alarm">Preview sunrise wake screen</string>
+    <string name="cd_delete_item">Delete item</string>
+    <string name="cd_edit_item">Edit item</string>
+    <string name="cd_play_sound">Preview alert sound</string>
+    <string name="cd_stop_sound">Stop alert sound</string>
+    <string name="permission_notifications_title">Enable Alarm Notifications</string>
+    <string name="permission_notifications_body">Allow notifications so Rust Alarm can present full-screen wake controls and snooze countdowns.</string>
+    <string name="permission_exact_alarm_title">Allow Exact Alarms</string>
+    <string name="permission_exact_alarm_body">Grant exact alarm access in system settings for second-accurate wake-ups and recurring snooze intervals.</string>
+</resources>

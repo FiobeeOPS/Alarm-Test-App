@@ -1,0 +1,6 @@
+{
+  "name": "Rust Alarm",
+  "description": "Industrial terracotta dark alarm clock with recurring snooze intervals, customizable alert sounds, sunrise glow, morning routine habit timer, and manual sleep & readiness metrics synced via Firebase.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
